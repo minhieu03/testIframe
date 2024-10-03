@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracking</title>
+    <style>
+        #container {
+            height: 500px;
+            min-width: 310px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/tiledwebmap.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
+    <script src="https://www.unpkg.com/@eohjsc/era-widget@1.0.14/src/index.js"></script>
+</head>
+<body>
+
+<div id="container"></div>
+<input type="checkbox" id="V0"> 
+<input type="checkbox" id="V1"> 
+
+<script>
+const eraWidget = new EraWidget();
+let config = null;
+
+// Lắng nghe cấu hình từ ERa Widget
+eraWidget.onConfiguration((configuration) => {
+    config = configuration.realtime_configs; // Lấy tất cả các cấu hình
+});
+
+// Lắng nghe các giá trị từ datastream
+eraWidget.onValues((values) => {
+    const latInput = document.getElementById('V0');
+    const lonInput = document.getElementById('V1');
+
+    // Cập nhật trạng thái checkbox theo giá trị của V0 (vĩ độ) và V1 (kinh độ)
+    latInput.checked = values[config[0].id].value; // V0 - vĩ độ
+    lonInput.checked = values[config[1].id].value; // V1 - kinh độ
+
+    // Cập nhật vị trí trên bản đồ (nếu có)
+    updateMarkerPosition(values[config[0].id].value, values[config[1].id].value);
+});
+
+eraWidget.ready();
+
+// Tạo bản đồ với Highcharts
+const mapChart = Highcharts.mapChart('container', {
+    chart: {
+        margin: 0
+    },
+    title: {
+        text: 'Theo dõi vị trí theo thời gian thực'
+    },
+    mapNavigation: {
+        enabled: true,
+        buttonOptions: {
+            alignTo: 'spacingBox'
+        }
+    },
+    mapView: {
+        center: [10.73028454146517, 59.91261204279989], // Trung tâm ban đầu của bản đồ
+        zoom: 13
+    },
+    series: [{
+        type: 'tiledwebmap',
+        name: 'Bản đồ nền',
+        provider: {
+            type: 'OpenStreetMap' // Nền bản đồ OpenStreetMap
+        },
+        showInLegend: false
+    }, {
+        type: 'mappoint',
+        name: 'Vị trí hiện tại',
+        marker: {
+            symbol: 'circle',
+            fillColor: '#FF0000',
+            lineWidth: 2,
+            radius: 8
+        },
+        data: [{
+            name: 'Bạn đang ở đây',
+            lon: 10.73028454146517,
+            lat: 59.91261204279989
+        }]
+    }]
+});
+
+// Hàm để cập nhật vị trí điểm đánh dấu (marker)
+function updateMarkerPosition(lat, lon) {
+    const series = mapChart.get('Vị trí hiện tại');
+    series.setData([{ name: 'Vị trí mới', lon: lon, lat: lat }]); // Cập nhật dữ liệu mới
+    mapChart.mapView.setCenter([lon, lat]); // Di chuyển trung tâm bản đồ
+}
+
+</script>
+</body>
+</html>
